@@ -23,12 +23,10 @@ export default function Home() {
     atualizarTotais();
   }, [descontos, valorRecebido]);
 
-  const atualizarTotais = () => {
-    // força re-render para atualizar cores no JSX
-  };
+  const atualizarTotais = () => {};
 
   const carregarUltimoMes = async () => {
-    const { data, error } = await supabase.from('meses').select('*').order('id',{ascending:false}).limit(1);
+    const { data } = await supabase.from('meses').select('*').order('id',{ascending:false}).limit(1);
     if(data && data.length>0){
       const ultimo = data[0];
       const desc = ultimo.desconto_descricao || [];
@@ -47,24 +45,20 @@ export default function Home() {
     setDescontos(novo);
   };
 
-  const adicionarLinha = () => {
-    setDescontos([...descontos, {descricao:'', valor:0, pago:false}]);
-  };
+  const adicionarLinha = () => setDescontos([...descontos, {descricao:'', valor:0, pago:false}]);
 
   const encerrarMes = async () => {
     const descontoDescricao = descontos.map(d=>d.descricao);
     const descontoValor = descontos.map(d=>d.valor);
     const descontoPago = descontos.map(d=>d.pago);
-
-    const { data, error } = await supabase.from('meses').insert([{
+    await supabase.from('meses').insert([{
       mes,
       valor_recebido: valorRecebido,
       desconto_descricao: descontoDescricao,
       desconto_valor: descontoValor,
       desconto_pago: descontoPago
     }]);
-    if(error) console.error(error);
-    else alert('Mês salvo no Supabase!');
+    alert('Mês salvo no Supabase!');
     mostrarGrafico();
   };
 
@@ -93,33 +87,52 @@ export default function Home() {
   const sobra = valorRecebido - totalDescontos;
 
   return (
-    <div style={{maxWidth:'950px', margin:'auto', padding:'20px'}}>
-      <h1>Controle Financeiro Online</h1>
-      <label>Mês: <input type="month" value={mes} onChange={e=>setMes(e.target.value)} /></label><br/><br/>
-      <label>Valor Recebido: R$ <input type="number" value={valorRecebido} onChange={e=>setValorRecebido(parseFloat(e.target.value)||0)} /></label>
-      <table style={{width:'100%', borderCollapse:'collapse', marginTop:'15px'}}>
-        <thead>
+    <div className="max-w-4xl mx-auto p-6 bg-gray-50 rounded-lg shadow-md mt-6">
+      <h1 className="text-2xl font-bold mb-4 text-center">Controle Financeiro Online</h1>
+
+      <div className="flex flex-wrap gap-4 mb-4">
+        <label className="flex flex-col">
+          Mês:
+          <input type="month" value={mes} onChange={e=>setMes(e.target.value)} className="border p-2 rounded"/>
+        </label>
+        <label className="flex flex-col">
+          Valor Recebido (R$):
+          <input type="number" value={valorRecebido} onChange={e=>setValorRecebido(parseFloat(e.target.value)||0)} className="border p-2 rounded"/>
+        </label>
+      </div>
+
+      <table className="w-full border border-gray-300 mb-4">
+        <thead className="bg-gray-200">
           <tr>
-            <th>Descrição</th><th>Valor</th><th>Pago</th>
+            <th className="border p-2">Descrição</th>
+            <th className="border p-2">Valor</th>
+            <th className="border p-2">Pago</th>
           </tr>
         </thead>
         <tbody>
           {descontos.map((d,i)=>(
-            <tr key={i} style={{backgroundColor:d.pago && d.valor>0 ? '#d4edda' : (!d.pago && d.valor>0 ? '#f8d7da' : 'transparent')}}>
-              <td><input type="text" value={d.descricao} onChange={e=>handleDescontoChange(i,'descricao',e.target.value)} /></td>
-              <td><input type="number" value={d.valor} onChange={e=>handleDescontoChange(i,'valor',e.target.value)} /></td>
-              <td><input type="checkbox" checked={d.pago} onChange={e=>handleDescontoChange(i,'pago',e.target.checked)} /></td>
+            <tr key={i} className={d.pago && d.valor>0 ? 'bg-green-100' : (!d.pago && d.valor>0 ? 'bg-red-100' : '')}>
+              <td className="border p-2"><input type="text" value={d.descricao} onChange={e=>handleDescontoChange(i,'descricao',e.target.value)} className="w-full p-1 border rounded"/></td>
+              <td className="border p-2"><input type="number" value={d.valor} onChange={e=>handleDescontoChange(i,'valor',e.target.value)} className="w-full p-1 border rounded"/></td>
+              <td className="border p-2 text-center"><input type="checkbox" checked={d.pago} onChange={e=>handleDescontoChange(i,'pago',e.target.checked)} /></td>
             </tr>
           ))}
         </tbody>
       </table>
-      <button onClick={adicionarLinha}>Adicionar Desconto</button>
-      <h2>Totalizadores</h2>
-      <p>Recebido: R$ {valorRecebido.toFixed(2)}</p>
-      <p>Descontos Pagos: R$ {totalDescontos.toFixed(2)}</p>
-      <p>Sobra: R$ {sobra.toFixed(2)}</p>
-      <button onClick={encerrarMes}>Encerrar Mês e Salvar Online</button>
-      <h2>Gráfico Mensal</h2>
+
+      <div className="flex gap-4 mb-4">
+        <button onClick={adicionarLinha} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Adicionar Desconto</button>
+        <button onClick={encerrarMes} className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Encerrar Mês</button>
+      </div>
+
+      <div className="mb-4">
+        <h2 className="text-xl font-semibold">Totalizadores</h2>
+        <p>Recebido: R$ {valorRecebido.toFixed(2)}</p>
+        <p>Descontos Pagos: R$ {totalDescontos.toFixed(2)}</p>
+        <p>Sobra: R$ {sobra.toFixed(2)}</p>
+      </div>
+
+      <h2 className="text-xl font-semibold mb-2">Gráfico Mensal</h2>
       <canvas ref={chartRef}></canvas>
     </div>
   )
