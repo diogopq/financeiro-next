@@ -33,11 +33,29 @@ export default function Home() {
     }
   };
 
-  const handleDescontoChange = (index, field, value) => {
-    const novo = [...descontos];
-    novo[index][field] = field === "pago" ? value : parseFloat(value) || 0;
-    setDescontos(novo);
-  };
+  const handleDescontoChange = (index, field, rawValue) => {
+  setDescontos((prev) =>
+    prev.map((item, i) => {
+      if (i !== index) return item;
+
+      if (field === "valor") {
+        const num = parseFloat(rawValue);
+        return { ...item, valor: isNaN(num) ? 0 : num };
+      }
+
+      if (field === "pago") {
+        return { ...item, pago: !!rawValue };
+      }
+
+      if (field === "descricao") {
+        return { ...item, descricao: rawValue }; // <-- aceita qualquer texto
+      }
+
+      return item;
+    })
+  );
+};
+
 
   const adicionarLinha = () => setDescontos([...descontos, { descricao: "", valor: 0, pago: false }]);
 
