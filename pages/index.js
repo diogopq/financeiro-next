@@ -1,197 +1,156 @@
-// pages/index.js
-import { useState, useRef } from "react";
-import { createClient } from "@supabase/supabase-js";
-import { Chart, BarElement, CategoryScale, LinearScale } from "chart.js";
+import { useEffect, useState } from "react";
 import styles from "../styles/Home.module.css";
+import { supabase } from "../utils/supabaseClient";
+import { Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
 
-Chart.register(BarElement, CategoryScale, LinearScale);
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_KEY || "";
-const supabase =
-  supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+ChartJS.register(BarElement, CategoryScale, LinearScale, Title, Tooltip, Legend);
 
 export default function Home() {
-  const [mes, setMes] = useState(new Date().toISOString().slice(0, 7));
-  const [valorRecebido, setValorRecebido] = useState(0);
-  const [descontos, setDescontos] = useState([
-    { id: Date.now() + Math.random(), descricao: "", valor: 0, pago: false },
-  ]);
+  const [recebido, setRecebido] = useState(0);
+  const [descontos, setDescontos] = useState([]);
+  const [darkMode, setDarkMode] = useState(false);
+  const [graficoData, setGraficoData] = useState(null);
 
-  const chartRef = useRef(null);
-  const [chartInstance, setChartInstance] = useState(null);
+  // Carregar último mês encerrado ao abrir
+  useEffect(() => {
+    const carregarUltimoMes = async () => {
+      const { data, error } = await supabase
+        .from("financeiro")
+        .select("*")
+        .order("id", { ascending: false })
+        .limit(1);
 
-  // Atualizar desconto
-  const handleDescontoChange = (index, field, rawValue) => {
-    setDescontos((prev) =>
-      prev.map((item, i) => {
-        if (i !== index) return item;
+      if (!error && data.length > 0) {
+        const mes = data[0];
+        setGraficoData({
+          labels: ["Recebido", "Descontos", "Sobra"],
+          datasets: [
+            {
+              label: mes.mes,
+              data: [mes.recebido, mes.descontos, mes.sobra],
+              backgroundColor: ["#3b82f6", "#ef4444", "#10b981"],
+            },
+          ],
+        });
+      }
+    };
+    carregarUltimoMes();
+  }, []);
 
-        if (field === "valor") {
-          const num = parseFloat(rawValue);
-          return { ...item, valor: isNaN(num) ? 0 : num };
-        }
-        if (field === "pago") {
-          return { ...item, pago: !!rawValue };
-        }
-        if (field === "descricao") {
-          return { ...item, descricao: rawValue };
-        }
-
-        return item;
-      })
-    );
+  const adicionarDesconto = () => {
+    setDescontos([...descontos, { descricao: "", valor: 0, pago: false }]);
   };
 
-  const adicionarLinha = () => {
-    setDescontos((prev) => [
-      ...prev,
-      { id: Date.now() + Math.random(), descricao: "", valor: 0, pago: false },
+  const atualizarDesconto = (index, campo, valor) => {
+    const novos = [...descontos];
+    novos[index][campo] = campo === "valor" ? parseFloat(valor) || 0 : valor;
+    setDescontos(novos);
+  };
+
+  const calcularTotais = () => {
+    const totalDescontos = descontos
+      .filter((d) => d.pago)
+      .reduce((acc, d) => acc + d.valor, 0);
+    const sobra = recebido - totalDescontos;
+    return { totalDescontos, sobra };
+  };
+
+  const encerrarMes = async () => {
+    const { totalDescontos, sobra } = calcularTotais();
+
+    const { error } = await supabase.from("financeiro").insert([
+      {
+        mes: new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
+        recebido,
+        descontos: totalDescontos,
+        sobra,
+      },
     ]);
-  };
 
-  const removerLinha = (index) => {
-    setDescontos((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  // Função para exibir gráfico
-  const mostrarGrafico = () => {
-    const totalDescontos = descontos.reduce(
-      (sum, d) => (d.pago ? sum + Number(d.valor || 0) : sum),
-      0
-    );
-    const sobra = Number(valorRecebido || 0) - totalDescontos;
-
-    const ctx = chartRef.current?.getContext("2d");
-    if (!ctx) return;
-
-    if (chartInstance) {
-      chartInstance.destroy();
-    }
-
-    const newChart = new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels: ["Recebido", "Descontos Pagos", "Sobra"],
+    if (!error) {
+      alert("Mês encerrado e salvo com sucesso!");
+      setDescontos([]); // limpa
+      setGraficoData({
+        labels: ["Recebido", "Descontos", "Sobra"],
         datasets: [
           {
-            label: `Mês ${mes}`,
-            data: [valorRecebido, totalDescontos, sobra],
+            label: "Mês Atual",
+            data: [recebido, totalDescontos, sobra],
             backgroundColor: ["#3b82f6", "#ef4444", "#10b981"],
           },
         ],
-      },
-      options: { responsive: true },
-    });
-
-    setChartInstance(newChart);
-  };
-
-  // Salvar e encerrar mês
-  const encerrarMes = async () => {
-    const descontoDescricao = descontos.map((d) => d.descricao);
-    const descontoValor = descontos.map((d) => d.valor);
-    const descontoPago = descontos.map((d) => d.pago);
-
-    if (supabase) {
-      try {
-        await supabase.from("meses").insert([
-          {
-            mes,
-            valor_recebido: valorRecebido,
-            desconto_descricao: descontoDescricao,
-            desconto_valor: descontoValor,
-            desconto_pago: descontoPago,
-          },
-        ]);
-        alert("Mês salvo no Supabase!");
-      } catch (err) {
-        console.error(err);
-        alert("Erro ao salvar no Supabase (veja console).");
-      }
-    } else {
-      alert("Supabase não configurado - salvando apenas localmente (teste).");
+      });
+      setRecebido(0);
     }
-
-    // Atualizar gráfico
-    mostrarGrafico();
-
-    // Limpar valores após salvar
-    setValorRecebido(0);
-    setDescontos([
-      { id: Date.now() + Math.random(), descricao: "", valor: 0, pago: false },
-    ]);
   };
 
-  const totalDescontos = descontos.reduce(
-    (sum, d) => (d.pago ? sum + Number(d.valor || 0) : sum),
-    0
-  );
-  const sobra = Number(valorRecebido || 0) - totalDescontos;
+  const { totalDescontos, sobra } = calcularTotais();
 
   return (
-    <div className={styles.container}>
-      <h1 className={styles.title}>Controle Financeiro Online</h1>
+    <div className={`${styles.container} ${darkMode ? styles.dark : ""}`}>
+      <h1 className={styles.title}>💰 Controle Financeiro</h1>
 
+      {/* Botão Dark Mode */}
+      <div style={{ textAlign: "right", marginBottom: "1rem" }}>
+        <button
+          className={styles.toggleButton}
+          onClick={() => setDarkMode(!darkMode)}
+        >
+          {darkMode ? "🌞 Modo Claro" : "🌙 Modo Escuro"}
+        </button>
+      </div>
+
+      {/* Entrada */}
       <div className={styles.inputGroup}>
         <label>
-          Mês:
-          <input
-            type="month"
-            value={mes}
-            onChange={(e) => setMes(e.target.value)}
-          />
-        </label>
-        <label>
-          Valor Recebido (R$):
+          Valor Recebido:
           <input
             type="number"
-            value={valorRecebido}
-            onChange={(e) =>
-              setValorRecebido(parseFloat(e.target.value) || 0)
-            }
+            value={recebido}
+            onChange={(e) => setRecebido(parseFloat(e.target.value) || 0)}
           />
         </label>
       </div>
 
+      {/* Tabela de descontos */}
       <table className={styles.table}>
         <thead>
           <tr>
             <th>Descrição</th>
             <th>Valor</th>
             <th>Pago</th>
-            <th></th>
           </tr>
         </thead>
         <tbody>
           {descontos.map((d, i) => (
             <tr
-              key={d.id}
-              className={
-                d.pago && d.valor > 0
-                  ? styles.rowPaid
-                  : !d.pago && d.valor > 0
-                  ? styles.rowPending
-                  : ""
-              }
+              key={i}
+              className={d.pago ? styles.rowPaid : styles.rowPending}
             >
               <td>
                 <input
                   type="text"
                   value={d.descricao}
                   onChange={(e) =>
-                    handleDescontoChange(i, "descricao", e.target.value)
+                    atualizarDesconto(i, "descricao", e.target.value)
                   }
-                  placeholder="Ex: Aluguel"
                 />
               </td>
               <td>
                 <input
                   type="number"
-                  step="0.01"
                   value={d.valor}
                   onChange={(e) =>
-                    handleDescontoChange(i, "valor", e.target.value)
+                    atualizarDesconto(i, "valor", e.target.value)
                   }
                 />
               </td>
@@ -200,49 +159,44 @@ export default function Home() {
                   type="checkbox"
                   checked={d.pago}
                   onChange={(e) =>
-                    handleDescontoChange(i, "pago", e.target.checked)
+                    atualizarDesconto(i, "pago", e.target.checked)
                   }
                 />
-              </td>
-              <td>
-                <button onClick={() => removerLinha(i)}>Remover</button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
 
+      {/* Botões */}
       <div className={styles.buttonGroup}>
-        <button
-          className={`${styles.button} ${styles.addButton}`}
-          onClick={adicionarLinha}
-        >
-          Adicionar Desconto
+        <button onClick={adicionarDesconto} className={`${styles.button} ${styles.addButton}`}>
+          ➕ Adicionar Desconto
         </button>
-        <button
-          className={`${styles.button} ${styles.saveButton}`}
-          onClick={encerrarMes}
-        >
-          Encerrar Mês
+        <button onClick={encerrarMes} className={`${styles.button} ${styles.saveButton}`}>
+          ✅ Encerrar Mês
         </button>
       </div>
 
+      {/* Totais */}
       <div className={styles.totalCard}>
         <div className={`${styles.card} ${styles.cardRecebido}`}>
-          Recebido: R$ {Number(valorRecebido || 0).toFixed(2)}
+          Recebido: R$ {recebido.toFixed(2)}
         </div>
         <div className={`${styles.card} ${styles.cardDescontos}`}>
-          Descontos Pagos: R$ {totalDescontos.toFixed(2)}
+          Descontos: R$ {totalDescontos.toFixed(2)}
         </div>
         <div className={`${styles.card} ${styles.cardSobra}`}>
           Sobra: R$ {sobra.toFixed(2)}
         </div>
       </div>
 
-      <h2 style={{ fontWeight: 600, marginBottom: "0.5rem" }}>
-        Gráfico Mensal
-      </h2>
-      <canvas ref={chartRef}></canvas>
+      {/* Gráfico */}
+      {graficoData && (
+        <div style={{ background: "white", padding: "1rem", borderRadius: "12px" }}>
+          <Bar data={graficoData} />
+        </div>
+      )}
     </div>
   );
 }
