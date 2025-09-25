@@ -1,17 +1,18 @@
 {
   "name": "controle-financeiro-next",
   "version": "1.0.0",
+  "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.10.0",
-    "chart.js": "^4.3.0",
-    "next": "",
-    "react": "",
-    "react-dom": ""
+    "next": "^14.3.1",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "@supabase/supabase-js": "^2.24.0",
+    "chart.js": "^4.5.0"
   },
   "engines": {
     "node": "22.x"
