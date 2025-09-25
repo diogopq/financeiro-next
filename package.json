@@ -10,8 +10,8 @@
     "@supabase/supabase-js": "^2.10.0",
     "chart.js": "^4.3.0",
     "next": "",
-    "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react": "",
+    "react-dom": ""
   },
   "engines": {
     "node": "22.x"
