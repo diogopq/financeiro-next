@@ -11,6 +11,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import jsPDF from "jspdf";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Title, Tooltip, Legend);
 
@@ -20,7 +21,7 @@ export default function Home() {
   const [darkMode, setDarkMode] = useState(false);
   const [graficoData, setGraficoData] = useState(null);
 
-  // Carregar último mês encerrado ao abrir
+  // Carregar último mês encerrado
   useEffect(() => {
     const carregarUltimoMes = async () => {
       const { data, error } = await supabase
@@ -69,7 +70,10 @@ export default function Home() {
 
     const { error } = await supabase.from("financeiro").insert([
       {
-        mes: new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
+        mes: new Date().toLocaleDateString("pt-BR", {
+          month: "long",
+          year: "numeric",
+        }),
         recebido,
         descontos: totalDescontos,
         sobra,
@@ -78,7 +82,8 @@ export default function Home() {
 
     if (!error) {
       alert("Mês encerrado e salvo com sucesso!");
-      setDescontos([]); // limpa
+      setDescontos([]);
+      setRecebido(0);
       setGraficoData({
         labels: ["Recebido", "Descontos", "Sobra"],
         datasets: [
@@ -89,11 +94,58 @@ export default function Home() {
           },
         ],
       });
-      setRecebido(0);
     }
   };
 
   const { totalDescontos, sobra } = calcularTotais();
+
+  // Exportar CSV
+  const exportarCSV = () => {
+    if (!descontos.length) {
+      alert("Não há dados para exportar!");
+      return;
+    }
+    const cabecalho = ["Descrição", "Valor", "Pago"];
+    const linhas = descontos.map((d) => [
+      d.descricao,
+      d.valor.toFixed(2),
+      d.pago ? "Sim" : "Não",
+    ]);
+    const csvContent = [cabecalho, ...linhas].map((e) => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `descontos_${new Date().toISOString()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Exportar PDF
+  const exportarPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("Relatório Financeiro", 20, 20);
+    let y = 30;
+    doc.text(`Recebido: R$ ${recebido.toFixed(2)}`, 20, y);
+    y += 10;
+    doc.text(`Descontos Pagos: R$ ${totalDescontos.toFixed(2)}`, 20, y);
+    y += 10;
+    doc.text(`Sobra: R$ ${sobra.toFixed(2)}`, 20, y);
+    y += 10;
+    doc.text("Detalhes dos Descontos:", 20, y);
+    y += 10;
+    descontos.forEach((d) => {
+      doc.text(
+        `${d.descricao} - R$ ${d.valor.toFixed(2)} - ${d.pago ? "Pago" : "Não pago"}`,
+        20,
+        y
+      );
+      y += 10;
+    });
+    doc.save(`relatorio_${new Date().toISOString()}.pdf`);
+  };
 
   return (
     <div className={`${styles.container} ${darkMode ? styles.dark : ""}`}>
@@ -170,11 +222,29 @@ export default function Home() {
 
       {/* Botões */}
       <div className={styles.buttonGroup}>
-        <button onClick={adicionarDesconto} className={`${styles.button} ${styles.addButton}`}>
+        <button
+          onClick={adicionarDesconto}
+          className={`${styles.button} ${styles.addButton}`}
+        >
           ➕ Adicionar Desconto
         </button>
-        <button onClick={encerrarMes} className={`${styles.button} ${styles.saveButton}`}>
+        <button
+          onClick={encerrarMes}
+          className={`${styles.button} ${styles.saveButton}`}
+        >
           ✅ Encerrar Mês
+        </button>
+        <button
+          onClick={exportarCSV}
+          className={`${styles.button} ${styles.saveButton}`}
+        >
+          📄 Exportar CSV
+        </button>
+        <button
+          onClick={exportarPDF}
+          className={`${styles.button} ${styles.saveButton}`}
+        >
+          📄 Exportar PDF
         </button>
       </div>
 
@@ -193,7 +263,13 @@ export default function Home() {
 
       {/* Gráfico */}
       {graficoData && (
-        <div style={{ background: "white", padding: "1rem", borderRadius: "12px" }}>
+        <div
+          style={{
+            background: "white",
+            padding: "1rem",
+            borderRadius: "12px",
+          }}
+        >
           <Bar data={graficoData} />
         </div>
       )}
