@@ -1,126 +1,155 @@
+/* styles/Home.module.css */
+
 .container {
-  max-width: 800px;
+  max-width: 900px;
   margin: 2rem auto;
-  padding: 1.5rem;
-  background-color: #fdfdfd;
+  padding: 2rem;
+  font-family: Arial, sans-serif;
+  background: #f9fafb;
   border-radius: 12px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .title {
   text-align: center;
   font-size: 2rem;
   font-weight: 700;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
   color: #1f2937;
 }
 
 .inputGroup {
   display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  justify-content: center;
 }
 
 .inputGroup label {
   display: flex;
   flex-direction: column;
-  font-weight: 500;
+  font-weight: 600;
   color: #374151;
 }
 
-.inputGroup input[type="number"],
-.inputGroup input[type="month"],
-.inputGroup input[type="text"] {
+.inputGroup input {
+  margin-top: 0.5rem;
   padding: 0.5rem;
-  margin-top: 0.3rem;
-  border-radius: 8px;
   border: 1px solid #d1d5db;
+  border-radius: 8px;
   font-size: 1rem;
 }
+
+/* ---------------- Tabela ---------------- */
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
-.table th, .table td {
-  border: 1px solid #d1d5db;
-  padding: 0.5rem;
+.table th,
+.table td {
+  border: 1px solid #e5e7eb;
+  padding: 0.75rem;
   text-align: center;
 }
 
 .table th {
-  background-color: #e5e7eb;
+  background: #f3f4f6;
+  font-weight: 600;
 }
 
+.table input[type="text"],
+.table input[type="number"] {
+  width: 100%;
+  padding: 0.4rem;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+}
+
+/* Linhas coloridas */
 .rowPaid {
-  background-color: #d1fae5;
+  background: #ecfdf5; /* verde claro */
 }
 
 .rowPending {
-  background-color: #fee2e2;
+  background: #fef2f2; /* vermelho claro */
 }
+
+/* ---------------- Botões ---------------- */
 
 .buttonGroup {
   display: flex;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  justify-content: center;
+  margin-bottom: 2rem;
 }
 
 .button {
-  padding: 0.6rem 1.2rem;
-  border-radius: 8px;
+  padding: 0.6rem 1.5rem;
   border: none;
-  font-weight: 600;
+  border-radius: 8px;
   cursor: pointer;
-  transition: 0.3s;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background 0.2s ease, transform 0.1s ease;
 }
 
 .addButton {
-  background-color: #3b82f6;
+  background: #3b82f6;
   color: white;
 }
 
 .addButton:hover {
-  background-color: #2563eb;
+  background: #2563eb;
+  transform: scale(1.02);
 }
 
 .saveButton {
-  background-color: #10b981;
+  background: #10b981;
   color: white;
 }
 
 .saveButton:hover {
-  background-color: #059669;
+  background: #059669;
+  transform: scale(1.02);
 }
+
+.button:active {
+  transform: scale(0.98);
+}
+
+/* ---------------- Totais ---------------- */
 
 .totalCard {
   display: flex;
   justify-content: space-around;
   gap: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 2rem;
 }
 
 .card {
   flex: 1;
   padding: 1rem;
-  border-radius: 10px;
-  color: white;
+  border-radius: 12px;
   font-weight: 600;
   text-align: center;
+  font-size: 1.1rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
 .cardRecebido {
-  background-color: #3b82f6;
+  background: #dbeafe;
+  color: #1e40af;
 }
 
 .cardDescontos {
-  background-color: #ef4444;
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .cardSobra {
-  background-color: #10b981;
+  background: #d1fae5;
+  color: #065f46;
 }
